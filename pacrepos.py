@@ -4,6 +4,7 @@ import configparser
 import argparse
 import shutil
 import sys
+import re
 
 class PacConfParser(configparser.ConfigParser):
     def optionxform(self, option):
@@ -52,6 +53,8 @@ class PacRepos:
     PACMAN_FILE = '/etc/pacman.conf'
     CONFIG_FILE = '/etc/pacrepos.conf'
 
+    RE_INSTALL_CHECK = re.compile(' ^ \\s* Include \\s* = \\s* {0} \\s* ( [#] .* )? $ '.format(re.escape(CONFIG_FILE)), re.VERBOSE | re.MULTILINE | re.IGNORECASE)
+
     def _read_config(self):
         config = PacConfParser()
         config.read(self.CONFIG_FILE)
@@ -63,7 +66,14 @@ class PacRepos:
             file.write('\n')
             config.write(file)
 
+    def is_installed(self):
+        with open(self.PACMAN_FILE, 'r') as file:
+            return bool(self.RE_INSTALL_CHECK.search(file.read()))
+
     def install(self):
+        if self.is_installed():
+            raise Exception('Already installed.')
+
         print("Installing packages from unofficial repositories is unsupported and discouraged and could partially or completely break your system. You probably won't get much technical support if that happens, so do it only if you know how to repair your system.")
         if not query_yes_no("Do you want to continue?", default = "no"):
             return
@@ -97,6 +107,9 @@ if args.install:
 else:
     if not args.name:
         raise Exception('Name is required when adding or removing a repository.')
+
+    if not repos.is_installed():
+        print("Don't forget to run '{0} --install'.".format(sys.argv[0]))
 
     if args.add:
         if not args.url:
