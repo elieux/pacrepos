@@ -43,6 +43,7 @@ def get_arg_parser():
     parser = argparse.ArgumentParser(description = 'Manage pacman repositories.')
     group = parser.add_mutually_exclusive_group(required = True)
     group.add_argument('-I', '--install', action = 'store_true', help = 'install into pacman.conf')
+    group.add_argument('-U', '--uninstall', action = 'store_true', help = 'uninstall from pacman.conf')
     group.add_argument('-A', '--add', action = 'store_true', help = 'add the repository NAME with URL')
     group.add_argument('-R', '--remove', action = 'store_true', help = 'remove the repository NAME')
     parser.add_argument('--name', help = 'the repository identifier')
@@ -53,7 +54,7 @@ class PacRepos:
     PACMAN_FILE = '/etc/pacman.conf'
     CONFIG_FILE = '/etc/pacrepos.conf'
 
-    RE_INSTALL_CHECK = re.compile(' ^ \\s* Include \\s* = \\s* {0} \\s* ( [#] .* )? $ '.format(re.escape(CONFIG_FILE)), re.VERBOSE | re.MULTILINE | re.IGNORECASE)
+    RE_INSTALL_LINE = re.compile(' ^ \\s* Include \\s* = \\s* {0} \\s* ( [#] .* )? $ '.format(re.escape(CONFIG_FILE)), re.VERBOSE | re.MULTILINE | re.IGNORECASE)
 
     def _read_config(self):
         config = PacConfParser()
@@ -68,7 +69,21 @@ class PacRepos:
 
     def is_installed(self):
         with open(self.PACMAN_FILE, 'r') as file:
-            return bool(self.RE_INSTALL_CHECK.search(file.read()))
+            return bool(self.RE_INSTALL_LINE.search(file.read()))
+
+    def backup_install(self):
+        shutil.copyfile(self.PACMAN_FILE, '{0}.old'.format(self.PACMAN_FILE))
+
+    def uninstall(self):
+        if not self.is_installed():
+            raise Exception('Not installed.')
+
+        self.backup_install()
+        with open(self.PACMAN_FILE, 'r') as file:
+            contents = file.read()
+        contents = self.RE_INSTALL_LINE.sub('', contents)
+        with open(self.PACMAN_FILE, 'w') as file:
+            file.write(contents)
 
     def install(self):
         if self.is_installed():
@@ -78,7 +93,7 @@ class PacRepos:
         if not query_yes_no("Do you want to continue?", default = "no"):
             return
 
-        shutil.copyfile(self.PACMAN_FILE, '{0}.old'.format(self.PACMAN_FILE))
+        self.backup_install()
         with open(self.PACMAN_FILE, 'a') as file:
             file.write('\n')
             file.write('Include = {0}\n'.format(self.CONFIG_FILE))
@@ -104,6 +119,8 @@ repos = PacRepos()
 
 if args.install:
     repos.install()
+elif args.uninstall:
+    repos.uninstall()
 else:
     if not args.name:
         raise Exception('Name is required when adding or removing a repository.')
