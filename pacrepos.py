@@ -6,10 +6,6 @@ import shutil
 import sys
 import re
 
-class PacConfParser(configparser.ConfigParser):
-    def optionxform(self, option):
-        return option
-
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question and returns the user's answer.
 
@@ -39,16 +35,9 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
-def get_arg_parser():
-    parser = argparse.ArgumentParser(description = 'Manage pacman repositories.')
-    group = parser.add_mutually_exclusive_group(required = True)
-    group.add_argument('-I', '--install', action = 'store_true', help = 'install into pacman.conf')
-    group.add_argument('-U', '--uninstall', action = 'store_true', help = 'uninstall from pacman.conf')
-    group.add_argument('-A', '--add', action = 'store_true', help = 'add the repository NAME with URL')
-    group.add_argument('-R', '--remove', action = 'store_true', help = 'remove the repository NAME')
-    parser.add_argument('--name', help = 'the repository identifier')
-    parser.add_argument('--url', help = 'the repository server')
-    return parser
+class PacConfParser(configparser.ConfigParser):
+    def optionxform(self, option):
+        return option
 
 class PacRepos:
     PACMAN_FILE = '/etc/pacman.conf'
@@ -113,6 +102,17 @@ class PacRepos:
             raise Exception("Repository '{0}' is not present.".format(name))
         del config[name]
         self._write_config(config)
+
+def get_arg_parser():
+    parser = argparse.ArgumentParser(description = 'Manage pacman repositories.')
+    group = parser.add_mutually_exclusive_group(required = True)
+    group.add_argument('-I', '--install', action = 'store_true', help = 'install into pacman.conf')
+    group.add_argument('-U', '--uninstall', action = 'store_true', help = 'uninstall from pacman.conf')
+    group.add_argument('-A', '--add', action = 'store_true', help = 'add the repository NAME with URL')
+    group.add_argument('-R', '--remove', action = 'store_true', help = 'remove the repository NAME')
+    parser.add_argument('--name', help = 'the repository identifier')
+    parser.add_argument('--url', help = 'the repository server')
+    return parser
 
 args = get_arg_parser().parse_args()
 repos = PacRepos()
