@@ -93,6 +93,10 @@ class PacRepos:
             file.write('\n')
             config.write(file)
 
+    def list(self):
+        with self.open() as config:
+            return { name: config[name]['Server'] for name in config if name != config.default_section}
+
     def add(self, name, url):
         with self.open() as config:
             if name in config:
@@ -110,6 +114,7 @@ def get_arg_parser():
     group = parser.add_mutually_exclusive_group(required = True)
     group.add_argument('-I', '--install', action = 'store_true', help = 'install into pacman.conf')
     group.add_argument('-U', '--uninstall', action = 'store_true', help = 'uninstall from pacman.conf')
+    group.add_argument('-L', '--list', action = 'store_true', help = 'list all repositories installed by this tool')
     group.add_argument('-A', '--add', action = 'store_true', help = 'add the repository NAME with URL')
     group.add_argument('-R', '--remove', action = 'store_true', help = 'remove the repository NAME')
     parser.add_argument('--name', help = 'the repository identifier')
@@ -124,19 +129,24 @@ if args.install or args.uninstall:
         conf.install()
     elif args.uninstall:
         conf.uninstall()
-elif args.add or args.remove:
-    if not args.name:
-        raise Exception('Name is required when adding or removing a repository.')
-
+elif args.list or args.add or args.remove:
     if not conf.is_installed():
-        print("Don't forget to run '{0} --install'.".format(sys.argv[0]))
+        print("Warning: Not installed. Run '{0} --install'.".format(sys.argv[0]))
 
     repos = PacRepos()
-    if args.add:
-        if not args.url:
-            raise Exception('URL is required when adding a repository.')
-        repos.add(args.name, args.url)
-    elif args.remove:
-        repos.remove(args.name)
+
+    if args.list:
+        for name, url in repos.list().items():
+            print(name, url, sep = '\t')
+    elif args.add or args.remove:
+        if not args.name:
+            raise Exception('Name is required when adding or removing a repository.')
+
+        if args.add:
+            if not args.url:
+                raise Exception('URL is required when adding a repository.')
+            repos.add(args.name, args.url)
+        elif args.remove:
+            repos.remove(args.name)
 else:
     raise Exception('Not implemented.')
