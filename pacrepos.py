@@ -3,10 +3,40 @@
 import configparser
 import argparse
 import shutil
+import sys
 
 class PacConfParser(configparser.ConfigParser):
 	def optionxform(self, option):
 		return option
+
+def query_yes_no(question, default="yes"):
+	"""Ask a yes/no question and returns the user's answer.
+
+	"question" is a string that is presented to the user.
+	"default" is the presumed answer if the user just hits <Enter>. It must be "yes" (the default), "no" or None (meaning an answer is required of the user).
+
+	The return value is a boolean.
+	"""
+
+	valid = { "yes": True, "y": True, "ye": True, "no": False, "n": False }
+	if default is None:
+		prompt = " [y/n] "
+	elif default == "yes":
+		prompt = " [Y/n] "
+	elif default == "no":
+		prompt = " [y/N] "
+	else:
+		raise ValueError("invalid default answer: '%s'" % default)
+
+	while True:
+		sys.stdout.write(question + prompt)
+		choice = input().lower()
+		if default is not None and choice == '':
+			return valid[default]
+		elif choice in valid:
+			return valid[choice]
+		else:
+			sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 parser = argparse.ArgumentParser(description = 'Manage pacman repositories.')
 group = parser.add_mutually_exclusive_group(required = True)
@@ -28,6 +58,10 @@ if args.remove and not args.name:
 	raise Exception('Name is required when removing a repository.')
 
 if args.install:
+	print("Installing packages from unofficial repositories is unsupported and discouraged and could partially or completely break your system. You probably won't get much technical support if that happens, so do it only if you know how to repair your system.")
+	if not query_yes_no("Do you want to continue?", default = "no"):
+		sys.exit(1)
+
 	shutil.copyfile(PACMAN_FILE, '{0}.old'.format(PACMAN_FILE))
 	with open(PACMAN_FILE, 'a') as file:
 		file.write('\n')

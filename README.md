@@ -3,6 +3,11 @@ pacrepos
 
 A tool to install/uninstall pacman repositories from command line.
 
+Warning
+-------
+
+Installing packages from unofficial repositories is unsupported and discouraged and could partially or completely break your system. You probably won't get much technical support if that happens, so do it only if you know how to repair your system.
+
 Usage
 -----
 
